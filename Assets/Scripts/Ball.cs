@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(LineRenderer))]
@@ -6,40 +7,44 @@ using UnityEngine;
 public class Ball : MonoBehaviour
 {
     #region Constantes
-    private const float MIN_DRAG_DISTANCE = 1f;    // Distancia mínima para aplicar fuerza
-    private const float VELOCITY_THRESHOLD = 0.2f; // Umbral de velocidad para permitir nuevo arrastre
-    private const float LINE_WIDTH = 0.02f;        // Ancho de la línea del LineRenderer
-    private const int RESOLUTION = 20;             // Resolución de la parábola (cantidad de puntos)
-    private const float GRAVITY = -9.8f;           // Gravedad simulada
+    private const float MIN_DRAG_DISTANCE = 1f;
+    private const float VELOCITY_THRESHOLD = 0.2f;
+    private const float LINE_WIDTH = 0.02f;
+    private const int RESOLUTION = 20;
+    private const float GRAVITY = -9.8f;
     #endregion
 
     #region Referencias
     [Header("Referencias")]
-    [SerializeField] private Rigidbody2D rb;                // Referencia al Rigidbody2D de la pelota
-    [SerializeField] private LineRenderer lr;               // Referencia al LineRenderer para la línea de dirección en el suelo
-    [SerializeField] private Camera mainCamera;             // Referencia a la cámara principal
-    [SerializeField] private AudioSource audioSource;       // Referencia al AudioSource para los sonidos
-    [SerializeField] private GameObject particlePrefab;     // Prefab del sistema de partículas
-    [SerializeField] private AudioClip[] hitSounds;         // Lista de sonidos de golpeo
-    [SerializeField] private GameObject hitIndicatorPrefab; // Prefab del indicador de golpeo
+    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] private LineRenderer lr;
+    [SerializeField] private Camera mainCamera;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private GameObject particlePrefab;
+    [SerializeField] private AudioClip[] hitSounds;
+    [SerializeField] private GameObject hitIndicatorPrefab;
+    [SerializeField] private AudioClip gameOverSound;
+    [SerializeField] private GameObject gameOverPopup;
     #endregion
 
     #region Atributos
     [Header("Atributos")]
-    [SerializeField] private float maxPower = 10f;             // Potencia máxima aplicable al tiro
-    [SerializeField] private float powerMultiplier = 2f;       // Multiplicador de la potencia aplicada
-    [SerializeField] private float particleLifetime = 2f;      // Tiempo que durará el prefab de partículas
-    [SerializeField] private float maxAdditionalForce = 5f;    // Fuerza máxima adicional para golpes en el aire
-    [SerializeField] private float airHitRadius = 1.5f;        // Radio del área de clic para golpes en el aire
+    [SerializeField] private float maxPower = 10f;
+    [SerializeField] private float powerMultiplier = 2f;
+    [SerializeField] private float particleLifetime = 2f;
+    [SerializeField] private float maxAdditionalForce = 5f;
+    [SerializeField] private float airHitRadius = 1.5f;
+    [SerializeField] private AnimationCurve forceCurve;  // Curva de fuerza para golpes en el aire
+    [SerializeField] private float deadZoneY = -10f;  // Nuevo: Valor Y para la dead zone
     #endregion
 
     #region Variables Privadas
-    private bool isDragging = false;        // Indica si el jugador está arrastrando la pelota (modo suelo)
-    private Vector2 dragStartPosition;      // Posición inicial del arrastre (modo suelo)
-
-    private bool isAiming = false;          // Indica si el jugador está apuntando para un golpe en el aire
-    private Vector2 aimStartPosition;       // Posición inicial al empezar a apuntar
-    private GameObject currentHitIndicator;  // Instancia actual del indicador de golpeo
+    private bool isDragging = false;
+    private Vector2 dragStartPosition;
+    private bool isAiming = false;
+    private Vector2 aimStartPosition;
+    private GameObject currentHitIndicator;
+    private bool isGameOver = false;  // Nuevo: Indica si el juego ha terminado
     #endregion
 
     private void Awake()
@@ -61,7 +66,11 @@ public class Ball : MonoBehaviour
 
     private void Update()
     {
-        ManejarEntradaDelJugador();
+        if (!isGameOver)
+        {
+            ManejarEntradaDelJugador();
+            VerificarDeadZone();
+        }
     }
 
     private void ConfigurarLineRenderer()
@@ -69,10 +78,10 @@ public class Ball : MonoBehaviour
         lr.positionCount = 0;
         lr.startWidth = LINE_WIDTH;
         lr.endWidth = LINE_WIDTH;
-        lr.numCapVertices = 10; // Opcional, para bordes más suaves
+        lr.numCapVertices = 10;
         lr.material = new Material(Shader.Find("Sprites/Default"));
         Color lineColor = Color.white;
-        lineColor.a = 0f; // Transparente al final de la línea
+        lineColor.a = 0f;
         lr.startColor = lineColor;
         lr.endColor = lineColor;
     }
@@ -81,7 +90,6 @@ public class Ball : MonoBehaviour
     {
         if (rb.velocity.magnitude < VELOCITY_THRESHOLD)
         {
-            // Modo Suelo: Drag & Drop
             if (Input.GetMouseButtonDown(0))
             {
                 Vector2 posicionEntrada = ObtenerPosicionDelMouse();
@@ -109,7 +117,6 @@ public class Ball : MonoBehaviour
         }
         else
         {
-            // Modo Aire: Golpe con Click dentro de airHitRadius
             if (Input.GetMouseButtonDown(0))
             {
                 Vector2 posicionEntrada = ObtenerPosicionDelMouse();
@@ -145,7 +152,7 @@ public class Ball : MonoBehaviour
     private Vector2 ObtenerPosicionDelMouse()
     {
         Vector3 mousePosition = Input.mousePosition;
-        mousePosition.z = -mainCamera.transform.position.z; // Asegurar que la posición Z sea correcta
+        mousePosition.z = -mainCamera.transform.position.z;
         return mainCamera.ScreenToWorldPoint(mousePosition);
     }
 
@@ -178,10 +185,7 @@ public class Ball : MonoBehaviour
         Vector2 fuerzaAplicada = Vector2.ClampMagnitude(direccion, maxPower) * powerMultiplier;
         rb.AddForce(fuerzaAplicada, ForceMode2D.Impulse);
 
-        // Emitir sonido de golpe aleatorio
         EmitirSonidoGolpe();
-
-        // Instanciar el prefab de partículas
         InstanciarParticulas(fuerzaAplicada.magnitude);
     }
 
@@ -191,7 +195,6 @@ public class Ball : MonoBehaviour
 
     private void IniciarAiming(Vector2 posicion)
     {
-        // Instanciar el indicador de golpeo
         if (hitIndicatorPrefab != null)
         {
             currentHitIndicator = Instantiate(hitIndicatorPrefab, transform.position, Quaternion.identity, transform);
@@ -202,15 +205,15 @@ public class Ball : MonoBehaviour
     {
         if (currentHitIndicator != null)
         {
-            // Calcula la dirección y fuerza basada en la posición actual del mouse
             Vector2 direccion = (Vector2)transform.position - posicion;
             float fuerza = Mathf.Clamp(direccion.magnitude, 0f, maxAdditionalForce);
 
-            // Ajusta la orientación del indicador
+            float curveValue = forceCurve.Evaluate(fuerza / maxAdditionalForce); // Aplicar la curva de fuerza
+            fuerza = curveValue * maxAdditionalForce;
+
             float angle = Mathf.Atan2(direccion.y, direccion.x) * Mathf.Rad2Deg;
             currentHitIndicator.transform.rotation = Quaternion.Euler(0, 0, angle);
 
-            // Ajusta la escala del indicador para mostrar la fuerza
             float scale = Mathf.Lerp(0.5f, 2f, fuerza / maxAdditionalForce);
             currentHitIndicator.transform.localScale = new Vector3(scale, scale, 1f);
         }
@@ -228,17 +231,16 @@ public class Ball : MonoBehaviour
         Vector2 direccion = (Vector2)transform.position - posicion;
         float fuerza = Mathf.Clamp(direccion.magnitude, 0f, maxAdditionalForce);
 
+        float curveValue = forceCurve.Evaluate(fuerza / maxAdditionalForce); // Aplicar la curva de fuerza
+        fuerza = curveValue * maxAdditionalForce;
+
         if (fuerza < MIN_DRAG_DISTANCE)
             return;
 
-        // Aplicar fuerza basada en la dirección y magnitud
         Vector2 fuerzaAplicada = Vector2.ClampMagnitude(direccion, maxAdditionalForce) * powerMultiplier;
         rb.AddForce(fuerzaAplicada, ForceMode2D.Impulse);
 
-        // Emitir sonido de golpe aleatorio
         EmitirSonidoGolpe();
-
-        // Instanciar el prefab de partículas
         InstanciarParticulas(fuerzaAplicada.magnitude);
     }
 
@@ -259,14 +261,11 @@ public class Ball : MonoBehaviour
     {
         if (particlePrefab != null)
         {
-            // Instanciar el prefab en la posición actual de la pelota
             GameObject particulas = Instantiate(particlePrefab, transform.position, Quaternion.identity, transform);
 
-            // Ajustar la escala de las partículas según la fuerza
             float scale = Mathf.Lerp(0.5f, 2f, fuerza / maxPower);
             particulas.transform.localScale = Vector3.one * scale;
 
-            // Destruir las partículas después de un tiempo definido
             Destroy(particulas, particleLifetime);
         }
     }
@@ -298,17 +297,51 @@ public class Ball : MonoBehaviour
     private void MostrarLinea()
     {
         Color colorInicial = Color.white;
-        colorInicial.a = 1f; // Opaco al inicio de la línea
+        colorInicial.a = 1f;
         lr.startColor = colorInicial;
 
         Color colorFinal = Color.white;
-        colorFinal.a = 0f; // Transparente al final de la línea
+        colorFinal.a = 0f;
         lr.endColor = colorFinal;
     }
 
     private void OcultarLinea()
     {
         lr.positionCount = 0;
+    }
+
+    #endregion
+
+    #region Dead Zone y Game Over
+
+    private void VerificarDeadZone()
+    {
+        if (transform.position.y < deadZoneY && !isGameOver)
+        {
+            ActivarGameOver();
+        }
+    }
+
+    private void ActivarGameOver()
+    {
+        isGameOver = true;
+        Time.timeScale = 0f;  // Pausa el juego
+        
+        if (gameOverSound != null)
+        {
+            audioSource.PlayOneShot(gameOverSound);
+        }
+        
+        if (gameOverPopup != null)
+        {
+            gameOverPopup.SetActive(true);
+        }
+    }
+
+    public void ReiniciarJuego()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     #endregion

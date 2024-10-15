@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 8606249863197634671}
   - component: {fileID: 1172432146750281491}
   - component: {fileID: 6160102746699723591}
-  - component: {fileID: 6743893706128844028}
   m_Layer: 0
   m_Name: BALL
   m_TagString: Untagged
@@ -33,8 +32,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 309847321556312069}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &8948239802899485258
@@ -135,102 +133,3 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &6743893706128844028
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6416076555775466061}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d06a9db294b418449309b401d338478, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxForce: 100
-  forceMultiplier: 10
-  maxChargeTime: 2
-  trajectory: {fileID: 7405311956317894911, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-  trajectoryResolution: 30
-  timeStep: 0.1
-  OnHit:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
-        m_MethodName: UpdateForceUI
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
---- !u!1001 &545650010117546379
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 2009055816802577079}
-    m_Modifications:
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5676199392896752545, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_Materials.Array.data[0]
-      value: 
-      objectReference: {fileID: 2100000, guid: 106efe153dbd43b408c858a3d0b6fcec, type: 2}
-    - target: {fileID: 7199929903988532487, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-      propertyPath: m_Name
-      value: Trajectory
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
---- !u!4 &309847321556312069 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 278736867938451854, guid: 6aa743a329445a64ab1797f135e82d4b, type: 3}
-  m_PrefabInstance: {fileID: 545650010117546379}
-  m_PrefabAsset: {fileID: 0}

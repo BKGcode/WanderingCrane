@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 853153b55c9b21546a489c5c7f2792d9, type: 3}
+  m_Name: Data_Dialogue-A
+  m_EditorClassIdentifier: 
+  dialogueEntries:
+  - speaker: {fileID: 11400000, guid: c7e458815bbd77b4e98261a8676cd1e6, type: 2}
+    localizedTextKey: 
+    dialogueSound: {fileID: 0}
+  - speaker: {fileID: 11400000, guid: 3a9bffab145a2124cbe4704f48d9fd67, type: 2}
+    localizedTextKey: 
+    dialogueSound: {fileID: 0}

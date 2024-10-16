@@ -107,7 +107,7 @@ Rigidbody2D:
   m_LinearDrag: 0.5
   m_AngularDrag: 0.6
   m_GravityScale: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 2613a0dbc42a62949bf78c190e12429f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -331,26 +331,30 @@ MonoBehaviour:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
-      time: 0
+      time: -0.026022306
       value: 0
-      inSlope: 1.8794758
-      outSlope: 1.8794758
+      inSlope: 3.4301846
+      outSlope: 3.4301846
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
-      outWeight: 0.09293681
+      outWeight: 0.021093037
     - serializedVersion: 3
       time: 1
       value: 1
-      inSlope: 0.58733636
-      outSlope: 0.58733636
+      inSlope: 0.054135554
+      outSlope: 0.054135554
       tangentMode: 0
       weightedMode: 0
-      inWeight: 0.1710037
+      inWeight: 0.078618616
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  deadZoneY: -10
+  maxAirHitDistance: 3
+  colorFuerzaMinima: {r: 0, g: 0.9490196, b: 0.49803922, a: 1}
+  colorFuerzaMaxima: {r: 1, g: 0.44283545, b: 0.4009434, a: 1}
 --- !u!82 &7587086557219106039
 AudioSource:
   m_ObjectHideFlags: 0

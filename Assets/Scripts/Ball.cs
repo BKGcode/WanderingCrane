@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(LineRenderer))]
@@ -23,8 +22,6 @@ public class Ball : MonoBehaviour
     [SerializeField] private GameObject particlePrefab;
     [SerializeField] private AudioClip[] hitSounds;
     [SerializeField] private GameObject hitIndicatorPrefab;
-    [SerializeField] private AudioClip gameOverSound;
-    [SerializeField] private GameObject gameOverPopup;
     #endregion
 
     #region Atributos
@@ -34,8 +31,15 @@ public class Ball : MonoBehaviour
     [SerializeField] private float particleLifetime = 2f;
     [SerializeField] private float maxAdditionalForce = 5f;
     [SerializeField] private float airHitRadius = 1.5f;
-    [SerializeField] private AnimationCurve forceCurve;  // Curva de fuerza para golpes en el aire
-    [SerializeField] private float deadZoneY = -10f;  // Nuevo: Valor Y para la dead zone
+    [SerializeField] private AnimationCurve forceCurve;
+    [SerializeField] private float deadZoneY = -10f;
+    [SerializeField] private float maxAirHitDistance = 3f;
+    #endregion
+
+    #region Colores de Trayectoria
+    [Header("Colores de Trayectoria")]
+    [SerializeField] private Color colorFuerzaMinima = Color.green;
+    [SerializeField] private Color colorFuerzaMaxima = Color.red;
     #endregion
 
     #region Variables Privadas
@@ -44,7 +48,7 @@ public class Ball : MonoBehaviour
     private bool isAiming = false;
     private Vector2 aimStartPosition;
     private GameObject currentHitIndicator;
-    private bool isGameOver = false;  // Nuevo: Indica si el juego ha terminado
+    private Gradient lineGradient;
     #endregion
 
     private void Awake()
@@ -57,6 +61,8 @@ public class Ball : MonoBehaviour
             audioSource = GetComponent<AudioSource>();
         if (mainCamera == null)
             mainCamera = Camera.main;
+        
+        lineGradient = new Gradient();
     }
 
     private void Start()
@@ -66,7 +72,7 @@ public class Ball : MonoBehaviour
 
     private void Update()
     {
-        if (!isGameOver)
+        if (!GameManager.Instance.IsGameOver)
         {
             ManejarEntradaDelJugador();
             VerificarDeadZone();
@@ -75,15 +81,12 @@ public class Ball : MonoBehaviour
 
     private void ConfigurarLineRenderer()
     {
-        lr.positionCount = 0;
+        lr.positionCount = RESOLUTION;
         lr.startWidth = LINE_WIDTH;
         lr.endWidth = LINE_WIDTH;
         lr.numCapVertices = 10;
         lr.material = new Material(Shader.Find("Sprites/Default"));
-        Color lineColor = Color.white;
-        lineColor.a = 0f;
-        lr.startColor = lineColor;
-        lr.endColor = lineColor;
+        lr.useWorldSpace = true;
     }
 
     private void ManejarEntradaDelJugador()
@@ -144,11 +147,6 @@ public class Ball : MonoBehaviour
         }
     }
 
-    private bool EstaListo()
-    {
-        return rb.velocity.magnitude < VELOCITY_THRESHOLD;
-    }
-
     private Vector2 ObtenerPosicionDelMouse()
     {
         Vector3 mousePosition = Input.mousePosition;
@@ -161,7 +159,6 @@ public class Ball : MonoBehaviour
     private void IniciarArrastre(Vector2 posicion)
     {
         lr.positionCount = RESOLUTION;
-        MostrarLinea();
     }
 
     private void ActualizarArrastre(Vector2 posicion)
@@ -199,6 +196,7 @@ public class Ball : MonoBehaviour
         {
             currentHitIndicator = Instantiate(hitIndicatorPrefab, transform.position, Quaternion.identity, transform);
         }
+        lr.positionCount = RESOLUTION;
     }
 
     private void ActualizarAiming(Vector2 posicion)
@@ -206,16 +204,21 @@ public class Ball : MonoBehaviour
         if (currentHitIndicator != null)
         {
             Vector2 direccion = (Vector2)transform.position - posicion;
-            float fuerza = Mathf.Clamp(direccion.magnitude, 0f, maxAdditionalForce);
+            float distancia = direccion.magnitude;
+            float fuerzaNormalizada = Mathf.Clamp01(distancia / maxAirHitDistance);
+            float fuerza = fuerzaNormalizada * maxAdditionalForce;
 
-            float curveValue = forceCurve.Evaluate(fuerza / maxAdditionalForce); // Aplicar la curva de fuerza
+            float curveValue = forceCurve.Evaluate(fuerzaNormalizada);
             fuerza = curveValue * maxAdditionalForce;
 
             float angle = Mathf.Atan2(direccion.y, direccion.x) * Mathf.Rad2Deg;
             currentHitIndicator.transform.rotation = Quaternion.Euler(0, 0, angle);
 
-            float scale = Mathf.Lerp(0.5f, 2f, fuerza / maxAdditionalForce);
+            float scale = Mathf.Lerp(0.5f, 2f, fuerzaNormalizada);
             currentHitIndicator.transform.localScale = new Vector3(scale, scale, 1f);
+
+            Vector2 fuerzaInicial = direccion.normalized * fuerza;
+            DibujarTrayectoria(transform.position, fuerzaInicial);
         }
     }
 
@@ -226,18 +229,21 @@ public class Ball : MonoBehaviour
             Destroy(currentHitIndicator);
         }
 
+        OcultarLinea();
         isAiming = false;
 
         Vector2 direccion = (Vector2)transform.position - posicion;
-        float fuerza = Mathf.Clamp(direccion.magnitude, 0f, maxAdditionalForce);
+        float distancia = direccion.magnitude;
+        float fuerzaNormalizada = Mathf.Clamp01(distancia / maxAirHitDistance);
+        float fuerza = fuerzaNormalizada * maxAdditionalForce;
 
-        float curveValue = forceCurve.Evaluate(fuerza / maxAdditionalForce); // Aplicar la curva de fuerza
+        float curveValue = forceCurve.Evaluate(fuerzaNormalizada);
         fuerza = curveValue * maxAdditionalForce;
 
         if (fuerza < MIN_DRAG_DISTANCE)
             return;
 
-        Vector2 fuerzaAplicada = Vector2.ClampMagnitude(direccion, maxAdditionalForce) * powerMultiplier;
+        Vector2 fuerzaAplicada = direccion.normalized * fuerza;
         rb.AddForce(fuerzaAplicada, ForceMode2D.Impulse);
 
         EmitirSonidoGolpe();
@@ -279,12 +285,34 @@ public class Ball : MonoBehaviour
         float tiempoDeVuelo = (2 * fuerzaInicial.y / -GRAVITY);
         float pasoDeTiempo = tiempoDeVuelo / RESOLUTION;
 
+        float fuerzaNormalizada = fuerzaInicial.magnitude / (maxPower * powerMultiplier);
+
+        GradientColorKey[] colorKeys = new GradientColorKey[2];
+        colorKeys[0] = new GradientColorKey(colorFuerzaMinima, 0f);
+        colorKeys[1] = new GradientColorKey(colorFuerzaMaxima, 1f);
+
+        GradientAlphaKey[] alphaKeys = new GradientAlphaKey[2];
+        alphaKeys[0] = new GradientAlphaKey(1f, 0f);
+        alphaKeys[1] = new GradientAlphaKey(0f, 1f);
+
+        lineGradient.SetKeys(colorKeys, alphaKeys);
+
+        lr.colorGradient = lineGradient;
+
         for (int i = 0; i < RESOLUTION; i++)
         {
             float tiempo = pasoDeTiempo * i;
             Vector2 posicion = CalcularPosicionParabolica(startPos, fuerzaInicial, tiempo);
             lr.SetPosition(i, posicion);
         }
+
+        Color startColor = Color.Lerp(colorFuerzaMinima, colorFuerzaMaxima, fuerzaNormalizada);
+        startColor.a = 1f;
+        Color endColor = startColor;
+        endColor.a = 0f;
+
+        lr.startColor = startColor;
+        lr.endColor = endColor;
     }
 
     private Vector2 CalcularPosicionParabolica(Vector2 startPos, Vector2 velocidadInicial, float tiempo)
@@ -294,17 +322,6 @@ public class Ball : MonoBehaviour
         return new Vector2(posX, posY);
     }
 
-    private void MostrarLinea()
-    {
-        Color colorInicial = Color.white;
-        colorInicial.a = 1f;
-        lr.startColor = colorInicial;
-
-        Color colorFinal = Color.white;
-        colorFinal.a = 0f;
-        lr.endColor = colorFinal;
-    }
-
     private void OcultarLinea()
     {
         lr.positionCount = 0;
@@ -312,36 +329,36 @@ public class Ball : MonoBehaviour
 
     #endregion
 
-    #region Dead Zone y Game Over
+    #region Interacción con GameManager y SaveSystem
 
     private void VerificarDeadZone()
     {
-        if (transform.position.y < deadZoneY && !isGameOver)
+        if (transform.position.y < deadZoneY && !GameManager.Instance.IsGameOver)
         {
-            ActivarGameOver();
+            GameManager.Instance.GameOver();
         }
     }
 
-    private void ActivarGameOver()
+    public void ResetBall(Vector3 startPosition)
     {
-        isGameOver = true;
-        Time.timeScale = 0f;  // Pausa el juego
-        
-        if (gameOverSound != null)
-        {
-            audioSource.PlayOneShot(gameOverSound);
-        }
-        
-        if (gameOverPopup != null)
-        {
-            gameOverPopup.SetActive(true);
-        }
+        transform.position = startPosition;
+        rb.velocity = Vector2.zero;
+        rb.angularVelocity = 0f;
     }
 
-    public void ReiniciarJuego()
+    public void LoadBallData(Vector3 position, Vector2 velocity)
     {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        transform.position = position;
+        rb.velocity = velocity;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Coin"))
+        {
+            GameManager.Instance.AddCoin();
+            Destroy(collision.gameObject);
+        }
     }
 
     #endregion

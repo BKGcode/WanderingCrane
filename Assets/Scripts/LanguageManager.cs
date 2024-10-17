@@ -1,36 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
-/// <summary>
-/// Gestiona el idioma actual del juego, carga las traducciones y permite cambios dinámicos de idioma.
-/// </summary>
 public class LanguageManager : MonoBehaviour
 {
     [Header("Referencias")]
-
-    /// <summary>
-    /// Datos de localización que contienen las traducciones.
-    /// </summary>
-    [Tooltip("Datos de localización que contienen las traducciones.")]
     [SerializeField] private LocalizationData localizationData;
 
     [Header("Configuración Inicial")]
-
-    /// <summary>
-    /// Código del idioma por defecto al iniciar el juego.
-    /// </summary>
-    [Tooltip("Código del idioma por defecto al iniciar el juego.")]
     [SerializeField] private string initialLanguageCode = "en";
 
-    /// <summary>
-    /// Diccionario para almacenar las traducciones actuales.
-    /// </summary>
     private Dictionary<string, string> currentTranslations = new Dictionary<string, string>();
-
-    /// <summary>
-    /// Código del idioma actualmente activo.
-    /// </summary>
     public string CurrentLanguageCode { get; private set; }
+
+    public delegate void LanguageChangedHandler(string newLanguageCode);
+    public event LanguageChangedHandler OnLanguageChanged;
 
     private void Awake()
     {
@@ -40,25 +24,20 @@ public class LanguageManager : MonoBehaviour
             return;
         }
 
-        // Inicializar con el idioma por defecto o el especificado
         string startLanguage = !string.IsNullOrEmpty(initialLanguageCode) ? initialLanguageCode : localizationData.DefaultLanguage.LanguageCode;
-        SetLanguage(startLanguage);
+        SetLanguageAsync(startLanguage);
     }
 
-    /// <summary>
-    /// Cambia el idioma actual del juego.
-    /// </summary>
-    /// <param name="languageCode">Código del idioma a establecer.</param>
-    public void SetLanguage(string languageCode)
+    public async Task SetLanguageAsync(string languageCode)
     {
         var language = localizationData.SupportedLanguages.Find(lang => lang.LanguageCode == languageCode);
         if (language != null)
         {
             CurrentLanguageCode = languageCode;
-            language.Initialize();
+            await language.InitializeAsync();
 
             currentTranslations.Clear();
-            foreach (var entry in language.LocalizationEntries) // 'LocalizationEntries' ahora es público
+            foreach (var entry in language.LocalizationEntries)
             {
                 if (!currentTranslations.ContainsKey(entry.Key))
                 {
@@ -70,8 +49,7 @@ public class LanguageManager : MonoBehaviour
                 }
             }
 
-            // Notificar a otros sistemas que el idioma ha cambiado
-            EventManager.TriggerEvent("OnLanguageChanged");
+            OnLanguageChanged?.Invoke(CurrentLanguageCode);
         }
         else
         {
@@ -79,11 +57,6 @@ public class LanguageManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Obtiene el texto traducido para una clave específica.
-    /// </summary>
-    /// <param name="key">Clave de localización.</param>
-    /// <returns>Texto traducido si existe; de lo contrario, retorna la clave original.</returns>
     public string GetLocalizedText(string key)
     {
         if (currentTranslations.TryGetValue(key, out string translatedText))
@@ -93,14 +66,10 @@ public class LanguageManager : MonoBehaviour
         else
         {
             Debug.LogWarning($"No se encontró la traducción para la clave '{key}' en el idioma '{CurrentLanguageCode}'.");
-            return key; // Retorna la clave original si no se encuentra la traducción
+            return key;
         }
     }
 
-    /// <summary>
-    /// Obtiene la lista de idiomas soportados.
-    /// </summary>
-    /// <returns>Lista de idiomas soportados.</returns>
     public List<LocalizationData.Language> GetSupportedLanguages()
     {
         return localizationData.SupportedLanguages;

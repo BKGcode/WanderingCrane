@@ -5,7 +5,10 @@ TagManager:
   serializedVersion: 2
   tags:
   - FxTemporaire
-  - Coins
+  - Coin
+  - NPC
+  - Interactable
+  - Boundary
   layers:
   - Default
   - TransparentFX

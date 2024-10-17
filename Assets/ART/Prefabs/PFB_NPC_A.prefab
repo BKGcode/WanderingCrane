@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 1935712680856038920}
   m_Layer: 0
   m_Name: PFB_NPC_A
-  m_TagString: Untagged
+  m_TagString: NPC
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -91,11 +91,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4fac06f4ec1f00409a277debc65b2fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dialogueData: {fileID: 11400000, guid: 4c83553fb1fcd6e46b20c531e7898028, type: 2}
-  interactionDistance: 3
-  interactionKey: 101
-  interactionPrompt: Presiona 'E' para hablar
-  promptText: {fileID: 0}
+  npcDialogueData: {fileID: 11400000, guid: f3d52bfca41111f4d91e9ee246127276, type: 2}
+  playerData: {fileID: 11400000, guid: ec92b7c21ed1d324c9e8f34ca4b71426, type: 2}
 --- !u!1 &5520468997588761905
 GameObject:
   m_ObjectHideFlags: 0

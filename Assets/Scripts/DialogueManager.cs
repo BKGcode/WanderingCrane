@@ -1,149 +1,156 @@
 using UnityEngine;
+using System.Collections;
 
-/// <summary>
-/// Controla el flujo de los diálogos, maneja la secuencia de entradas y comunica con la UI para actualizar el contenido mostrado.
-/// </summary>
 public class DialogueManager : MonoBehaviour
 {
-    [Header("Referencias")]
+    public static DialogueManager Instance { get; private set; }
 
-    /// <summary>
-    /// Referencia a la UI del diálogo.
-    /// </summary>
-    [Tooltip("Referencia a la UI del diálogo.")]
+    [Header("UI References")]
     [SerializeField] private DialogueUI dialogueUI;
 
-    /// <summary>
-    /// Referencia al gestor de idiomas.
-    /// </summary>
-    [Tooltip("Referencia al gestor de idiomas.")]
+    [Header("Cooldown Settings")]
+    [SerializeField] private float cooldownDuration = 2f;
+
+    [Header("Localization")]
     [SerializeField] private LanguageManager languageManager;
 
-    /// <summary>
-    /// Datos de diálogo que se van a mostrar.
-    /// </summary>
-    private DialogueData currentDialogue;
-
-    /// <summary>
-    /// Índice de la entrada de diálogo actual.
-    /// </summary>
-    private int currentEntryIndex = 0;
-
-    /// <summary>
-    /// Indica si un diálogo está activo.
-    /// </summary>
+    private PlayerData playerData;
+    private NPCDialogueData currentNPCDialogue;
+    private int currentLineIndex = 0;
     private bool isDialogueActive = false;
+    private bool isCooldown = false;
 
-    private void OnEnable()
+    private void Awake()
     {
-        // Suscribirse al evento de cambio de idioma para actualizar el diálogo si está activo
-        EventManager.StartListening("OnLanguageChanged", UpdateDialogueUI);
-    }
-
-    private void OnDisable()
-    {
-        // Desuscribirse del evento
-        EventManager.StopListening("OnLanguageChanged", UpdateDialogueUI);
-    }
-
-    /// <summary>
-    /// Establece el diálogo actual a mostrar.
-    /// </summary>
-    /// <param name="dialogue">Datos de diálogo que se van a mostrar.</param>
-    public void SetCurrentDialogue(DialogueData dialogue)
-    {
-        currentDialogue = dialogue;
-    }
-
-    /// <summary>
-    /// Inicia el diálogo.
-    /// </summary>
-    public void StartDialogue()
-    {
-        if (currentDialogue == null || currentDialogue.DialogueEntries.Count == 0)
+        if (Instance == null)
         {
-            Debug.LogWarning("No hay diálogo para iniciar.");
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
             return;
         }
 
-        isDialogueActive = true;
-        currentEntryIndex = 0;
-        ShowCurrentEntry();
+        if (dialogueUI == null)
+        {
+            dialogueUI = FindObjectOfType<DialogueUI>();
+            if (dialogueUI == null)
+            {
+                Debug.LogError("No se encontró DialogueUI en la escena. Asegúrate de que existe y tiene el componente DialogueUI.");
+            }
+        }
+
+        if (languageManager == null)
+        {
+            languageManager = FindObjectOfType<LanguageManager>();
+            if (languageManager == null)
+            {
+                Debug.LogError("No se encontró LanguageManager en la escena. Asegúrate de que existe y tiene el componente LanguageManager.");
+            }
+        }
     }
 
-    /// <summary>
-    /// Avanza al siguiente diálogo.
-    /// </summary>
+    public bool Initialize(PlayerData player, NPCDialogueData npcDialogue)
+    {
+        if (isDialogueActive)
+        {
+            Debug.LogWarning("Ya hay un diálogo activo.");
+            return false;
+        }
+
+        if (isCooldown)
+        {
+            Debug.LogWarning("En cooldown. No se puede iniciar un nuevo diálogo.");
+            return false;
+        }
+
+        playerData = player;
+        currentNPCDialogue = npcDialogue;
+        currentLineIndex = 0;
+        isDialogueActive = true;
+        Debug.Log($"Iniciando diálogo con {currentNPCDialogue.npcName}");
+
+        if (dialogueUI != null)
+        {
+            dialogueUI.gameObject.SetActive(true);
+            dialogueUI.ShowDialogue();
+            DisplayCurrentLine();
+            PauseGame();
+            return true;
+        }
+        else
+        {
+            Debug.LogError("DialogueUI es null. No se puede mostrar el diálogo.");
+            return false;
+        }
+    }
+
+    private void DisplayCurrentLine()
+    {
+        if (currentLineIndex >= currentNPCDialogue.dialogueLines.Count)
+        {
+            EndDialogue();
+            return;
+        }
+
+        DialogueLine line = currentNPCDialogue.dialogueLines[currentLineIndex];
+        Sprite avatar = line.speaker == Speaker.Player ? playerData.avatar : currentNPCDialogue.avatar;
+        string speakerName = line.speaker == Speaker.Player ? playerData.playerName : currentNPCDialogue.npcName;
+        string localizedText = languageManager.GetLocalizedText(line.textKey);
+        Debug.Log($"Mostrando línea {currentLineIndex + 1}: {speakerName} dice: {localizedText}");
+        dialogueUI.UpdateDialogue(avatar, speakerName, localizedText);
+    }
+
     public void AdvanceDialogue()
     {
         if (!isDialogueActive)
-            return;
-
-        currentEntryIndex++;
-        if (currentEntryIndex < currentDialogue.DialogueEntries.Count)
         {
-            ShowCurrentEntry();
-        }
-        else
-        {
-            EndDialogue();
-        }
-    }
-
-    /// <summary>
-    /// Muestra la entrada de diálogo actual en la UI.
-    /// </summary>
-    private void ShowCurrentEntry()
-    {
-        if (currentEntryIndex >= currentDialogue.DialogueEntries.Count)
-        {
-            EndDialogue();
+            Debug.LogWarning("No hay un diálogo activo para avanzar.");
             return;
         }
 
-        var entry = currentDialogue.DialogueEntries[currentEntryIndex];
-        string localizedText = languageManager.GetLocalizedText(entry.LocalizedTextKey);
-
-        dialogueUI.DisplayDialogue(entry.Speaker.CharacterName, entry.Speaker.Portrait, localizedText, entry.DialogueSound);
+        currentLineIndex++;
+        Debug.Log($"Avanzando al diálogo {currentLineIndex + 1}");
+        DisplayCurrentLine();
     }
 
-    /// <summary>
-    /// Finaliza el diálogo y oculta la UI.
-    /// </summary>
-    private void EndDialogue()
+    public void EndDialogue()
     {
         isDialogueActive = false;
-        dialogueUI.HideDialogue();
-    }
-
-    /// <summary>
-    /// Actualiza la UI del diálogo cuando cambia el idioma.
-    /// </summary>
-    private void UpdateDialogueUI()
-    {
-        if (!isDialogueActive)
-            return;
-
-        ShowCurrentEntry();
-    }
-
-    private void Start()
-    {
+        Debug.Log("Diálogo finalizado.");
         if (dialogueUI != null)
         {
-            dialogueUI.OnNextDialogue += AdvanceDialogue;
+            dialogueUI.HideDialogue();
+            dialogueUI.gameObject.SetActive(false);
         }
-        else
-        {
-            Debug.LogError("DialogueUI no está asignado en DialogueManager.");
-        }
+        ResumeGame();
+        StartCoroutine(StartCooldown());
     }
 
-    private void OnDestroy()
+    private IEnumerator StartCooldown()
     {
-        if (dialogueUI != null)
-        {
-            dialogueUI.OnNextDialogue -= AdvanceDialogue;
-        }
+        isCooldown = true;
+        Debug.Log($"Cooldown iniciado por {cooldownDuration} segundos.");
+        yield return new WaitForSecondsRealtime(cooldownDuration);
+        isCooldown = false;
+        Debug.Log("Cooldown finalizado.");
+    }
+
+    public bool IsDialogueActive()
+    {
+        return isDialogueActive;
+    }
+
+    private void PauseGame()
+    {
+        Time.timeScale = 0f;
+        Debug.Log("Juego pausado.");
+    }
+
+    private void ResumeGame()
+    {
+        Time.timeScale = 1f;
+        Debug.Log("Juego reanudado.");
     }
 }

@@ -10,17 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3d9ac1eb18687c046be973fd7b1b86f2, type: 3}
-  m_Name: Data_Localization_A
+  m_Name: NewLocalizationData
   m_EditorClassIdentifier: 
-  supportedLanguages:
-  - languageName: Spanish
-    languageCode: 
-    localizationEntries:
-    - key: 
-      translatedText: 
-  defaultLanguage:
-    languageName: English
-    languageCode: 
-    localizationEntries:
-    - key: 
-      translatedText: 
+  SupportedLanguages:
+  - LanguageCode: en
+    LanguageName: English
+    LocalizationEntries: []
+  - LanguageCode: es
+    LanguageName: "Espa\xF1ol"
+    LocalizationEntries:
+    - Key: 
+      TranslatedText: 
+  DefaultLanguage:
+    LanguageCode: en
+    LanguageName: English
+    LocalizationEntries: []

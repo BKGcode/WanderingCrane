@@ -3,185 +3,284 @@ using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    // Singleton para asegurar que solo hay una instancia de GameManager
     public static GameManager Instance { get; private set; }
 
-    [Header("Referencias")]
-    [SerializeField] private Ball ball;
-    [SerializeField] private GameObject gameOverPopup;
-    [SerializeField] private AudioSource audioSource;
+    [Header("Game Data")]
+    public GameData currentGameData;
 
-    [Header("Configuración")]
-    [SerializeField] private string mainMenuSceneName = "MainMenu";
-    [SerializeField] private Vector3 ballStartPosition = Vector3.zero;
-    [SerializeField] private AudioClip gameOverSound;
+    [Header("UI References")]
+    [Tooltip("Referencia al UI de confirmación para reiniciar el juego.")]
+    [SerializeField] private GameObject resetConfirmationUI;
 
-    private float elapsedTime = 0f;
-    private int coins = 0;
+    [Tooltip("Referencia al UI de carga.")]
+    [SerializeField] private GameObject loadingUI;
+
+    // Estado del juego
     private bool isGameOver = false;
-
-    public bool IsGameOver => isGameOver;
 
     private void Awake()
     {
+        // Implementación del patrón Singleton
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(gameObject); // Persistir entre escenas
         }
         else
         {
             Destroy(gameObject);
-            return;
-        }
-
-        if (audioSource == null)
-        {
-            audioSource = GetComponent<AudioSource>();
         }
     }
 
     private void Start()
     {
+        // Intentar cargar el juego al iniciar
         LoadGame();
     }
 
-    private void Update()
-    {
-        if (!isGameOver)
-        {
-            elapsedTime += Time.deltaTime;
-        }
-    }
-
-    public void AddCoin()
-    {
-        coins++;
-        SaveGame();
-    }
-
-    public void GameOver()
-    {
-        if (isGameOver) return;
-
-        isGameOver = true;
-        Time.timeScale = 0f;
-        
-        if (gameOverSound != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(gameOverSound);
-        }
-        
-        if (gameOverPopup != null)
-        {
-            gameOverPopup.SetActive(true);
-        }
-
-        SaveGame();
-    }
-
-    public void ResetGame()
-    {
-        elapsedTime = 0f;
-        coins = 0;
-        isGameOver = false;
-
-        if (ball != null)
-        {
-            ball.ResetBall(ballStartPosition);
-        }
-
-        if (gameOverPopup != null)
-        {
-            gameOverPopup.SetActive(false);
-        }
-
-        Time.timeScale = 1f;
-        SaveGame();
-    }
-
-    public void ExitToMainMenu()
-    {
-        SaveGame();
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(mainMenuSceneName);
-    }
-
+    /// <summary>
+    /// Guarda el estado actual del juego.
+    /// </summary>
     public void SaveGame()
     {
-        if (ball != null)
+        if (currentGameData == null)
         {
-            GameData data = new GameData
-            {
-                time = elapsedTime,
-                coins = coins,
-                ballPosition = ball.transform.position,
-                ballVelocity = ball.GetComponent<Rigidbody2D>().velocity
-            };
-            SaveSystem.SaveGame(data);
+            Debug.LogError("GameData está vacío. No se puede guardar el juego.");
+            return;
         }
-        else
+
+        try
         {
-            Debug.LogWarning("No se puede guardar el juego porque la referencia a la pelota es nula.");
+            SaveSystem.SaveGame(currentGameData);
+            Debug.Log("Juego guardado correctamente.");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error al guardar el juego: {ex.Message}");
         }
     }
 
+    /// <summary>
+    /// Carga el estado del juego desde el archivo de guardado.
+    /// </summary>
     public void LoadGame()
     {
-        GameData data = SaveSystem.LoadGame();
-        if (data != null)
+        try
         {
-            elapsedTime = data.time;
-            coins = data.coins;
-            if (ball != null)
+            GameData loadedData = SaveSystem.LoadGame();
+            if (loadedData != null)
             {
-                ball.LoadBallData(data.ballPosition, data.ballVelocity);
+                currentGameData = loadedData;
+                ApplyGameData();
+                Debug.Log("Juego cargado correctamente.");
             }
             else
             {
-                Debug.LogWarning("No se puede cargar la posición de la pelota porque la referencia es nula.");
+                Debug.LogWarning("No se encontró un archivo de guardado. Se iniciará un nuevo juego.");
+                InitializeNewGame();
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error al cargar el juego: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Reinicia el juego, eliminando el archivo de guardado y reiniciando la escena.
+    /// </summary>
+    public void ResetGame()
+    {
+        // Mostrar UI de confirmación antes de reiniciar
+        if (resetConfirmationUI != null)
+        {
+            resetConfirmationUI.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("Reset Confirmation UI no está asignado en GameManager.");
+        }
+    }
+
+    /// <summary>
+    /// Confirmación para reiniciar el juego.
+    /// </summary>
+    public void ConfirmResetGame()
+    {
+        try
+        {
+            SaveSystem.DeleteSaveFile();
+            Debug.Log("Archivo de guardado eliminado.");
+            InitializeNewGame();
+            // Opcional: Reiniciar la escena actual
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error al reiniciar el juego: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Cancela la operación de reinicio del juego.
+    /// </summary>
+    public void CancelResetGame()
+    {
+        if (resetConfirmationUI != null)
+        {
+            resetConfirmationUI.SetActive(false);
+        }
+        else
+        {
+            Debug.LogError("Reset Confirmation UI no está asignado en GameManager.");
+        }
+    }
+
+    /// <summary>
+    /// Inicializa un nuevo juego con valores predeterminados.
+    /// </summary>
+    private void InitializeNewGame()
+    {
+        currentGameData = new GameData
+        {
+            time = 0f,
+            coins = 0,
+            ballPosition = Vector3.zero,
+            ballVelocity = Vector2.zero
+            // Inicializa otros campos según sea necesario
+        };
+        ApplyGameData();
+    }
+
+    /// <summary>
+    /// Aplica los datos del juego cargados a la escena y objetos relevantes.
+    /// </summary>
+    private void ApplyGameData()
+    {
+        // Ejemplo: Posicionar la pelota
+        GameObject ball = GameObject.FindWithTag("Player");
+        if (ball != null)
+        {
+            ball.transform.position = currentGameData.ballPosition;
+            Rigidbody2D rb = ball.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.velocity = currentGameData.ballVelocity;
             }
         }
         else
         {
-            ResetGame();
+            Debug.LogWarning("No se encontró un objeto con la tag 'Ball' en la escena.");
+        }
+
+        // Aplicar otros campos de GameData según sea necesario
+    }
+
+    /// <summary>
+    /// Actualiza el tiempo del juego. Debe ser llamado desde otros scripts que gestionan el tiempo.
+    /// </summary>
+    /// <param name="deltaTime">Tiempo transcurrido desde el último frame.</param>
+    public void UpdateGameTime(float deltaTime)
+    {
+        if (currentGameData != null)
+        {
+            currentGameData.time += deltaTime;
         }
     }
 
-    public void PauseGame()
+    /// <summary>
+    /// Añade una moneda al juego.
+    /// </summary>
+    public void AddCoin()
+    {
+        if (currentGameData != null)
+        {
+            currentGameData.coins += 1;
+            SaveGame(); // Guardar automáticamente después de añadir una moneda
+            Debug.Log($"Se ha añadido una moneda. Total monedas: {currentGameData.coins}");
+        }
+    }
+
+    /// <summary>
+    /// Propiedad que indica si el juego ha terminado.
+    /// </summary>
+    public bool IsGameOver
+    {
+        get { return isGameOver; }
+    }
+
+    /// <summary>
+    /// Finaliza el juego, estableciendo el estado de Game Over y mostrando la UI correspondiente.
+    /// </summary>
+    public void GameOver()
     {
         if (!isGameOver)
         {
-            Time.timeScale = 0f;
-            // Aquí puedes activar un menú de pausa si lo tienes
+            isGameOver = true;
+            Debug.Log("¡Game Over!");
+
+            // Opcional: Mostrar UI de Game Over
+            // Por ejemplo:
+            // gameOverUIPanel.SetActive(true);
         }
     }
 
-    public void ResumeGame()
+    /// <summary>
+    /// Muestra la UI de carga.
+    /// </summary>
+    public void ShowLoadingUI()
     {
-        if (!isGameOver)
+        if (loadingUI != null)
         {
-            Time.timeScale = 1f;
-            // Aquí puedes desactivar el menú de pausa si lo tienes
+            loadingUI.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("Loading UI no está asignado en GameManager.");
         }
     }
 
-    public int GetCoins()
+    /// <summary>
+    /// Oculta la UI de carga.
+    /// </summary>
+    public void HideLoadingUI()
     {
-        return coins;
+        if (loadingUI != null)
+        {
+            loadingUI.SetActive(false);
+        }
+        else
+        {
+            Debug.LogError("Loading UI no está asignado en GameManager.");
+        }
     }
 
-    public float GetElapsedTime()
+    /// <summary>
+    /// Maneja la finalización de la carga del juego.
+    /// </summary>
+    private void OnGameLoaded()
     {
-        return elapsedTime;
+        HideLoadingUI();
+        Debug.Log("La carga del juego ha finalizado.");
     }
 
-    public void SetBallStartPosition(Vector3 position)
+    /// <summary>
+    /// Método para manejar la pausa del juego.
+    /// </summary>
+    /// <param name="isPaused">Indica si el juego debe estar pausado.</param>
+    public void PauseGame(bool isPaused)
     {
-        ballStartPosition = position;
+        Time.timeScale = isPaused ? 0f : 1f;
+        // Puedes añadir lógica adicional para mostrar/Ocultar el menú de pausa
     }
 
-    public Vector3 GetBallStartPosition()
+    /// <summary>
+    /// Método para cerrar la aplicación.
+    /// </summary>
+    public void QuitGame()
     {
-        return ballStartPosition;
+        Debug.Log("Cerrando el juego...");
+        Application.Quit();
     }
 }

@@ -1,133 +1,56 @@
 using UnityEngine;
-using UnityEngine.UI;
 
-/// <summary>
-/// Detecta la interacción del jugador y activa un diálogo específico.
-/// </summary>
 public class DialogueTrigger : MonoBehaviour
 {
-    [Header("Referencias")]
+    [Header("Dialogue Settings")]
+    [SerializeField] private NPCDialogueData npcDialogueData;
+    [SerializeField] private PlayerData playerData;
 
-    /// <summary>
-    /// Datos de diálogo que se van a activar.
-    /// </summary>
-    [Tooltip("Datos de diálogo que se van a activar.")]
-    [SerializeField] private DialogueData dialogueData;
+    private bool hasTriggered = false;
 
-    /// <summary>
-    /// Distancia mínima para que el jugador pueda interactuar.
-    /// </summary>
-    [Tooltip("Distancia mínima para que el jugador pueda interactuar.")]
-    [SerializeField] private float interactionDistance = 3f;
-
-    /// <summary>
-    /// Tecla para interactuar (por ejemplo, 'E').
-    /// </summary>
-    [Tooltip("Tecla para interactuar (por ejemplo, 'E').")]
-    [SerializeField] private KeyCode interactionKey = KeyCode.E;
-
-    /// <summary>
-    /// Mensaje de indicación para el jugador.
-    /// </summary>
-    [Tooltip("Mensaje de indicación para el jugador.")]
-    [SerializeField] private string interactionPrompt = "Presiona 'E' para hablar";
-
-    [Header("Componentes UI")]
-
-    /// <summary>
-    /// Referencia al texto de indicación de interacción.
-    /// </summary>
-    [Tooltip("Referencia al texto de indicación de interacción.")]
-    [SerializeField] private Text promptText;
-
-    private Transform playerTransform;
-    private bool isPlayerInRange = false;
-
-    private void Start()
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        // Asumimos que el jugador tiene la etiqueta "Player"
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        if (other.CompareTag("Player") && !hasTriggered)
         {
-            playerTransform = player.transform;
-        }
-        else
-        {
-            Debug.LogError("No se encontró un objeto con la etiqueta 'Player' en la escena.");
-        }
-
-        // Ocultar el mensaje de interacción al inicio
-        if (promptText != null)
-        {
-            promptText.text = "";
-        }
-    }
-
-    private void Update()
-    {
-        if (playerTransform == null || dialogueData == null)
-            return;
-
-        float distance = Vector3.Distance(transform.position, playerTransform.position);
-        if (distance <= interactionDistance)
-        {
-            if (!isPlayerInRange)
+            Debug.Log($"Player ha entrado en el trigger de {npcDialogueData.npcName}");
+            if (DialogueManager.Instance != null)
             {
-                isPlayerInRange = true;
-                ShowPrompt();
+                if (npcDialogueData != null && playerData != null)
+                {
+                    if (DialogueManager.Instance.Initialize(playerData, npcDialogueData))
+                    {
+                        hasTriggered = true;
+                    }
+                }
+                else
+                {
+                    Debug.LogError("npcDialogueData o playerData no están asignados en DialogueTrigger.");
+                }
             }
-
-            if (Input.GetKeyDown(interactionKey))
+            else
             {
-                TriggerDialogue();
-            }
-        }
-        else
-        {
-            if (isPlayerInRange)
-            {
-                isPlayerInRange = false;
-                HidePrompt();
+                Debug.LogError("DialogueManager.Instance es null. Asegúrate de que DialogueManager esté presente en la escena.");
             }
         }
     }
 
-    /// <summary>
-    /// Muestra el mensaje de indicación para interactuar.
-    /// </summary>
-    private void ShowPrompt()
+    private void OnTriggerExit2D(Collider2D other)
     {
-        if (promptText != null)
+        if (other.CompareTag("Player"))
         {
-            promptText.text = interactionPrompt;
+            hasTriggered = false;
         }
     }
 
-    /// <summary>
-    /// Oculta el mensaje de indicación de interacción.
-    /// </summary>
-    private void HidePrompt()
+    private void OnValidate()
     {
-        if (promptText != null)
+        if (npcDialogueData == null)
         {
-            promptText.text = "";
+            Debug.LogWarning("npcDialogueData no está asignado en DialogueTrigger.");
         }
-    }
-
-    /// <summary>
-    /// Activa el diálogo asociado.
-    /// </summary>
-    private void TriggerDialogue()
-    {
-        DialogueManager dialogueManager = FindObjectOfType<DialogueManager>();
-        if (dialogueManager != null)
+        if (playerData == null)
         {
-            dialogueManager.SetCurrentDialogue(dialogueData);
-            dialogueManager.StartDialogue();
-        }
-        else
-        {
-            Debug.LogError("No se encontró una instancia de DialogueManager en la escena.");
+            Debug.LogWarning("playerData no está asignado en DialogueTrigger.");
         }
     }
 }

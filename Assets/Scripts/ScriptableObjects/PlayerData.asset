@@ -10,8 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 893e1959f71db0c4ba6a7a22ca09ce0b, type: 3}
-  m_Name: Data_Character-NPC
+  m_Name: PlayerData
   m_EditorClassIdentifier: 
-  characterName: NPC
-  portrait: {fileID: 21300000, guid: b76446236559e4a7ebfbdc6519fa9d07, type: 3}
-  greetingSound: {fileID: 8300000, guid: 76018432deecb084e85e7ac111391748, type: 3}
+  playerName: PLayer
+  avatar: {fileID: 21300000, guid: 1ebe9d3ac5ce74f3589c006da297bdc7, type: 3}

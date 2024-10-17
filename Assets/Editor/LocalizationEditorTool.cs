@@ -5,13 +5,12 @@ using System.IO;
 
 public class LocalizationEditorTool : EditorWindow
 {
-    private LocalizationData localizationData;
+    private TextAsset localizationCSV;
+    private Dictionary<string, Dictionary<string, string>> localizationData = new Dictionary<string, Dictionary<string, string>>();
     private Vector2 scrollPosition;
-    private string newLanguageCode = "";
-    private string newLanguageName = "";
     private string newKey = "";
     private Dictionary<string, string> newTranslations = new Dictionary<string, string>();
-    private string csvPath = "";
+    private List<string> languages = new List<string>();
 
     [MenuItem("Tools/Localization Editor")]
     public static void ShowWindow()
@@ -19,138 +18,117 @@ public class LocalizationEditorTool : EditorWindow
         GetWindow<LocalizationEditorTool>("Localization Editor");
     }
 
+    private void OnEnable()
+    {
+        LoadLocalizationCSV();
+    }
+
     private void OnGUI()
     {
-        if (localizationData == null)
+        EditorGUILayout.BeginHorizontal();
+        localizationCSV = EditorGUILayout.ObjectField("Localization CSV", localizationCSV, typeof(TextAsset), false) as TextAsset;
+        if (GUILayout.Button("Reload"))
         {
-            DrawLocalizationDataSelector();
+            LoadLocalizationCSV();
+        }
+        EditorGUILayout.EndHorizontal();
+
+        if (localizationCSV == null)
+        {
+            EditorGUILayout.HelpBox("Por favor, asigna un archivo CSV de localización.", MessageType.Info);
             return;
         }
 
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-        DrawLanguageList();
-        DrawAddLanguageSection();
-        DrawKeyList();
+        DrawLocalizationTable();
         DrawAddKeySection();
-        DrawCSVImportExport();
 
         EditorGUILayout.EndScrollView();
 
         if (GUI.changed)
         {
-            EditorUtility.SetDirty(localizationData);
-            AssetDatabase.SaveAssets();
+            SaveLocalizationCSV();
         }
     }
 
-    private void DrawLocalizationDataSelector()
+    private void LoadLocalizationCSV()
     {
-        EditorGUILayout.HelpBox("Please select a LocalizationData asset.", MessageType.Info);
-        localizationData = EditorGUILayout.ObjectField("Localization Data", localizationData, typeof(LocalizationData), false) as LocalizationData;
-    }
+        localizationData.Clear();
+        languages.Clear();
 
-    private void DrawLanguageList()
-    {
-        EditorGUILayout.LabelField("Supported Languages", EditorStyles.boldLabel);
-        foreach (var language in localizationData.SupportedLanguages)
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField($"{language.LanguageName} ({language.LanguageCode})");
-            if (GUILayout.Button("Remove", GUILayout.Width(100)))
-            {
-                localizationData.SupportedLanguages.Remove(language);
-                break;
-            }
-            EditorGUILayout.EndHorizontal();
-        }
-    }
+        if (localizationCSV == null)
+            return;
 
-    private void DrawAddLanguageSection()
-    {
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Add New Language", EditorStyles.boldLabel);
-        newLanguageCode = EditorGUILayout.TextField("Language Code", newLanguageCode);
-        newLanguageName = EditorGUILayout.TextField("Language Name", newLanguageName);
-        if (GUILayout.Button("Add Language"))
+        string[] lines = localizationCSV.text.Split(new[] { '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
+        if (lines.Length < 2)
         {
-            if (!string.IsNullOrEmpty(newLanguageCode) && !string.IsNullOrEmpty(newLanguageName))
-            {
-                localizationData.SupportedLanguages.Add(new LocalizationData.Language
-                {
-                    LanguageCode = newLanguageCode,
-                    LanguageName = newLanguageName
-                });
-                newLanguageCode = "";
-                newLanguageName = "";
-            }
-            else
-            {
-                EditorUtility.DisplayDialog("Invalid Input", "Please enter both language code and name.", "OK");
-            }
-        }
-    }
-
-    private void DrawKeyList()
-    {
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Localization Keys and Translations", EditorStyles.boldLabel);
-        
-        if (localizationData.SupportedLanguages.Count == 0)
-        {
-            EditorGUILayout.HelpBox("Add at least one language before adding keys.", MessageType.Warning);
+            Debug.LogError("El archivo CSV de localización está vacío o mal formateado.");
             return;
         }
 
-        EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("Key", EditorStyles.boldLabel, GUILayout.Width(200));
-        foreach (var language in localizationData.SupportedLanguages)
+        string[] headers = lines[0].Split(',');
+
+        for (int i = 1; i < headers.Length; i++)
         {
-            EditorGUILayout.LabelField(language.LanguageCode, EditorStyles.boldLabel, GUILayout.Width(100));
+            string languageCode = headers[i].Trim();
+            languages.Add(languageCode);
+        }
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string[] fields = lines[i].Split(',');
+            if (fields.Length < 2) continue;
+
+            string key = fields[0].Trim();
+
+            if (!localizationData.ContainsKey(key))
+            {
+                localizationData[key] = new Dictionary<string, string>();
+            }
+
+            for (int j = 1; j < fields.Length; j++)
+            {
+                string languageCode = languages[j - 1];
+                string value = fields[j].Trim().Replace("\\n", "\n");
+                localizationData[key][languageCode] = value;
+            }
+        }
+    }
+
+    private void DrawLocalizationTable()
+    {
+        EditorGUILayout.LabelField("Claves y Traducciones", EditorStyles.boldLabel);
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Clave", EditorStyles.boldLabel, GUILayout.Width(200));
+        foreach (var language in languages)
+        {
+            EditorGUILayout.LabelField(language, EditorStyles.boldLabel, GUILayout.Width(150));
         }
         EditorGUILayout.EndHorizontal();
 
-        var allKeys = new HashSet<string>();
-        foreach (var language in localizationData.SupportedLanguages)
-        {
-            foreach (var entry in language.LocalizationEntries)
-            {
-                allKeys.Add(entry.Key);
-            }
-        }
-
-        foreach (var key in allKeys)
+        foreach (var keyEntry in localizationData)
         {
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(key, GUILayout.Width(200));
-            foreach (var language in localizationData.SupportedLanguages)
+            EditorGUILayout.LabelField(keyEntry.Key, GUILayout.Width(200));
+
+            foreach (var language in languages)
             {
-                var entry = language.LocalizationEntries.Find(e => e.Key == key);
-                string translation = entry != null ? entry.TranslatedText : "";
-                string newTranslation = EditorGUILayout.TextField(translation, GUILayout.Width(100));
+                string translation = keyEntry.Value.ContainsKey(language) ? keyEntry.Value[language] : "";
+                string newTranslation = EditorGUILayout.TextField(translation, GUILayout.Width(150));
                 if (newTranslation != translation)
                 {
-                    if (entry != null)
-                    {
-                        entry.TranslatedText = newTranslation;
-                    }
-                    else
-                    {
-                        language.LocalizationEntries.Add(new LocalizationData.LocalizationEntry
-                        {
-                            Key = key,
-                            TranslatedText = newTranslation
-                        });
-                    }
+                    keyEntry.Value[language] = newTranslation;
                 }
             }
-            if (GUILayout.Button("Remove", GUILayout.Width(100)))
+
+            if (GUILayout.Button("Eliminar", GUILayout.Width(100)))
             {
-                foreach (var language in localizationData.SupportedLanguages)
-                {
-                    language.LocalizationEntries.RemoveAll(e => e.Key == key);
-                }
+                localizationData.Remove(keyEntry.Key);
+                break;
             }
+
             EditorGUILayout.EndHorizontal();
         }
     }
@@ -158,157 +136,70 @@ public class LocalizationEditorTool : EditorWindow
     private void DrawAddKeySection()
     {
         EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Add New Key", EditorStyles.boldLabel);
-        newKey = EditorGUILayout.TextField("Key", newKey);
-        
-        foreach (var language in localizationData.SupportedLanguages)
+        EditorGUILayout.LabelField("Añadir Nueva Clave", EditorStyles.boldLabel);
+        newKey = EditorGUILayout.TextField("Clave", newKey);
+
+        foreach (var language in languages)
         {
-            if (!newTranslations.ContainsKey(language.LanguageCode))
+            if (!newTranslations.ContainsKey(language))
             {
-                newTranslations[language.LanguageCode] = "";
+                newTranslations[language] = "";
             }
-            newTranslations[language.LanguageCode] = EditorGUILayout.TextField(language.LanguageCode, newTranslations[language.LanguageCode]);
+            newTranslations[language] = EditorGUILayout.TextField(language, newTranslations[language]);
         }
 
-        if (GUILayout.Button("Add Key and Translations"))
+        if (GUILayout.Button("Añadir Clave y Traducciones"))
         {
-            if (!string.IsNullOrEmpty(newKey))
+            if (!string.IsNullOrEmpty(newKey) && !localizationData.ContainsKey(newKey))
             {
-                foreach (var language in localizationData.SupportedLanguages)
+                Dictionary<string, string> translations = new Dictionary<string, string>();
+                foreach (var language in languages)
                 {
-                    language.LocalizationEntries.Add(new LocalizationData.LocalizationEntry
-                    {
-                        Key = newKey,
-                        TranslatedText = newTranslations.ContainsKey(language.LanguageCode) ? newTranslations[language.LanguageCode] : ""
-                    });
+                    translations[language] = newTranslations.ContainsKey(language) ? newTranslations[language] : "";
                 }
+                localizationData[newKey] = translations;
                 newKey = "";
                 newTranslations.Clear();
             }
             else
             {
-                EditorUtility.DisplayDialog("Invalid Input", "Please enter a key.", "OK");
+                EditorUtility.DisplayDialog("Entrada Inválida", "Por favor, introduce una clave única.", "OK");
             }
         }
     }
 
-    private void DrawCSVImportExport()
+    private void SaveLocalizationCSV()
     {
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("CSV Import/Export", EditorStyles.boldLabel);
-        
-        csvPath = EditorGUILayout.TextField("CSV Path", csvPath);
-        
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("Import CSV"))
-        {
-            ImportCSV();
-        }
-        if (GUILayout.Button("Export CSV"))
-        {
-            ExportCSV();
-        }
-        EditorGUILayout.EndHorizontal();
-    }
-
-    private void ImportCSV()
-    {
-        if (string.IsNullOrEmpty(csvPath))
-        {
-            EditorUtility.DisplayDialog("Invalid Path", "Please enter a valid CSV path.", "OK");
+        if (localizationCSV == null)
             return;
-        }
 
-        try
+        string assetPath = AssetDatabase.GetAssetPath(localizationCSV);
+        if (string.IsNullOrEmpty(assetPath))
+            return;
+
+        using (StreamWriter writer = new StreamWriter(assetPath))
         {
-            string[] lines = File.ReadAllLines(csvPath);
-            string[] headers = lines[0].Split(',');
-
-            for (int i = 1; i < lines.Length; i++)
+            // Escribir encabezados
+            writer.Write("Key");
+            foreach (var language in languages)
             {
-                string[] values = lines[i].Split(',');
-                string key = values[0];
-
-                for (int j = 1; j < headers.Length; j++)
-                {
-                    string languageCode = headers[j];
-                    string translation = values[j];
-
-                    var language = localizationData.SupportedLanguages.Find(l => l.LanguageCode == languageCode);
-                    if (language == null)
-                    {
-                        language = new LocalizationData.Language { LanguageCode = languageCode, LanguageName = languageCode };
-                        localizationData.SupportedLanguages.Add(language);
-                    }
-
-                    var entry = language.LocalizationEntries.Find(e => e.Key == key);
-                    if (entry == null)
-                    {
-                        entry = new LocalizationData.LocalizationEntry { Key = key };
-                        language.LocalizationEntries.Add(entry);
-                    }
-                    entry.TranslatedText = translation;
-                }
+                writer.Write($",{language}");
             }
+            writer.WriteLine();
 
-            EditorUtility.SetDirty(localizationData);
-            AssetDatabase.SaveAssets();
-            EditorUtility.DisplayDialog("Import Successful", "CSV data has been imported successfully.", "OK");
-        }
-        catch (System.Exception e)
-        {
-            EditorUtility.DisplayDialog("Import Failed", $"Failed to import CSV: {e.Message}", "OK");
-        }
-    }
-
-    private void ExportCSV()
-    {
-        if (string.IsNullOrEmpty(csvPath))
-        {
-            EditorUtility.DisplayDialog("Invalid Path", "Please enter a valid CSV path.", "OK");
-            return;
-        }
-
-        try
-        {
-            using (StreamWriter writer = new StreamWriter(csvPath))
+            // Escribir datos
+            foreach (var keyEntry in localizationData)
             {
-                // Write headers
-                writer.Write("Key");
-                foreach (var language in localizationData.SupportedLanguages)
+                writer.Write(keyEntry.Key);
+                foreach (var language in languages)
                 {
-                    writer.Write($",{language.LanguageCode}");
+                    string translation = keyEntry.Value.ContainsKey(language) ? keyEntry.Value[language] : "";
+                    writer.Write($",{translation}");
                 }
                 writer.WriteLine();
-
-                // Write data
-                var allKeys = new HashSet<string>();
-                foreach (var language in localizationData.SupportedLanguages)
-                {
-                    foreach (var entry in language.LocalizationEntries)
-                    {
-                        allKeys.Add(entry.Key);
-                    }
-                }
-
-                foreach (var key in allKeys)
-                {
-                    writer.Write(key);
-                    foreach (var language in localizationData.SupportedLanguages)
-                    {
-                        var entry = language.LocalizationEntries.Find(e => e.Key == key);
-                        string translation = entry != null ? entry.TranslatedText : "";
-                        writer.Write($",{translation}");
-                    }
-                    writer.WriteLine();
-                }
             }
+        }
 
-            EditorUtility.DisplayDialog("Export Successful", "Data has been exported to CSV successfully.", "OK");
-        }
-        catch (System.Exception e)
-        {
-            EditorUtility.DisplayDialog("Export Failed", $"Failed to export CSV: {e.Message}", "OK");
-        }
+        AssetDatabase.Refresh();
     }
 }

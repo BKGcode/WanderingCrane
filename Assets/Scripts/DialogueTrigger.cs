@@ -3,7 +3,7 @@ using UnityEngine;
 public class DialogueTrigger : MonoBehaviour
 {
     [Header("Dialogue Settings")]
-    [SerializeField] private NPCDialogueData npcDialogueData;
+    [SerializeField] private DialogueData dialogueData;
     [SerializeField] private PlayerData playerData;
 
     private bool hasTriggered = false;
@@ -12,19 +12,19 @@ public class DialogueTrigger : MonoBehaviour
     {
         if (other.CompareTag("Player") && !hasTriggered)
         {
-            Debug.Log($"Player ha entrado en el trigger de {npcDialogueData.npcName}");
+            Debug.Log($"Player ha entrado en el trigger de {dialogueData.npcName}");
             if (DialogueManager.Instance != null)
             {
-                if (npcDialogueData != null && playerData != null)
+                if (dialogueData != null && playerData != null)
                 {
-                    if (DialogueManager.Instance.Initialize(playerData, npcDialogueData))
+                    if (DialogueManager.Instance.Initialize(playerData, dialogueData))
                     {
                         hasTriggered = true;
                     }
                 }
                 else
                 {
-                    Debug.LogError("npcDialogueData o playerData no están asignados en DialogueTrigger.");
+                    Debug.LogError("DialogueData o PlayerData no están asignados en DialogueTrigger.");
                 }
             }
             else
@@ -44,13 +44,13 @@ public class DialogueTrigger : MonoBehaviour
 
     private void OnValidate()
     {
-        if (npcDialogueData == null)
+        if (dialogueData == null)
         {
-            Debug.LogWarning("npcDialogueData no está asignado en DialogueTrigger.");
+            Debug.LogWarning("DialogueData no está asignado en DialogueTrigger.");
         }
         if (playerData == null)
         {
-            Debug.LogWarning("playerData no está asignado en DialogueTrigger.");
+            Debug.LogWarning("PlayerData no está asignado en DialogueTrigger.");
         }
     }
 }

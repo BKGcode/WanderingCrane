@@ -16,6 +16,9 @@ public class GameManager : MonoBehaviour
     [Tooltip("Referencia al UI de carga.")]
     [SerializeField] private GameObject loadingUI;
 
+    [Tooltip("Referencia al UI de diálogo.")]
+    [SerializeField] private GameObject dialogueUI; // Añadido para el diálogo
+
     // Estado del juego
     private bool isGameOver = false;
 
@@ -171,7 +174,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("No se encontró un objeto con la tag 'Ball' en la escena.");
+            Debug.LogWarning("No se encontró un objeto con la tag 'Player' en la escena.");
         }
 
         // Aplicar otros campos de GameData según sea necesario
@@ -266,13 +269,33 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Método para manejar la pausa del juego.
+    /// Método para abrir el diálogo.
     /// </summary>
-    /// <param name="isPaused">Indica si el juego debe estar pausado.</param>
-    public void PauseGame(bool isPaused)
+    public void OpenDialogue()
     {
-        Time.timeScale = isPaused ? 0f : 1f;
-        // Puedes añadir lógica adicional para mostrar/Ocultar el menú de pausa
+        if (dialogueUI != null)
+        {
+            dialogueUI.SetActive(true); // Muestra el diálogo
+        }
+        else
+        {
+            Debug.LogError("Dialogue UI no está asignado en GameManager.");
+        }
+    }
+
+    /// <summary>
+    /// Método para cerrar el diálogo.
+    /// </summary>
+    public void CloseDialogue()
+    {
+        if (dialogueUI != null)
+        {
+            dialogueUI.SetActive(false); // Oculta el diálogo
+        }
+        else
+        {
+            Debug.LogError("Dialogue UI no está asignado en GameManager.");
+        }
     }
 
     /// <summary>
@@ -281,6 +304,10 @@ public class GameManager : MonoBehaviour
     public void QuitGame()
     {
         Debug.Log("Cerrando el juego...");
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
         Application.Quit();
+#endif
     }
 }

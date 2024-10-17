@@ -5090,6 +5090,7 @@ MonoBehaviour:
     ballVelocity: {x: 0, y: 0}
   resetConfirmationUI: {fileID: 0}
   loadingUI: {fileID: 0}
+  dialogueUI: {fileID: 0}
 --- !u!1001 &943271328
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5198,11 +5199,6 @@ PrefabInstance:
 --- !u!224 &943271329 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3393664061981616203, guid: 6dfbac11b5e74104e8633f3222d461df, type: 3}
-  m_PrefabInstance: {fileID: 943271328}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &943271330 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 510264819610519734, guid: 6dfbac11b5e74104e8633f3222d461df, type: 3}
   m_PrefabInstance: {fileID: 943271328}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1005044840
@@ -5347,8 +5343,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 400.1, y: 150.3}
-  m_SizeDelta: {x: 50, y: 50}
+  m_AnchoredPosition: {x: 379, y: 129.5}
+  m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1023974943
 MonoBehaviour:
@@ -6920,7 +6916,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1208076022
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8425,8 +8421,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1449889858}
   - component: {fileID: 1449889857}
-  - component: {fileID: 1449889860}
-  - component: {fileID: 1449889859}
   m_Layer: 0
   m_Name: --DIALOGUE--
   m_TagString: Untagged
@@ -8448,7 +8442,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dialogueUI: {fileID: 1208076023}
   cooldownDuration: 20
-  languageManager: {fileID: 1449889860}
+  initialLanguageCode: en
 --- !u!4 &1449889858
 Transform:
   m_ObjectHideFlags: 0
@@ -8464,36 +8458,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1449889859
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1449889856}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 99872e1ccbd88d54fa642eea823e1c15, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  languageManager: {fileID: 1449889860}
-  languageButtonPrefab: {fileID: 943271330}
-  buttonsContainer: {fileID: 232790294}
-  loadingIndicator: {fileID: 0}
---- !u!114 &1449889860
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1449889856}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1688e1139902b40438fba32c182ad74a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  initialLanguageCode: en
-  localizationFolderPath: Localization
 --- !u!1 &1456557133
 GameObject:
   m_ObjectHideFlags: 0
@@ -9830,8 +9794,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: X
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}
-  m_sharedMaterial: {fileID: 2140474, guid: 8a89fa14b10d46a99122fd4f73fca9a2, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5c5ee151f9307453bad78be36b51a077, type: 2}
+  m_sharedMaterial: {fileID: 2517202264660172603, guid: 5c5ee151f9307453bad78be36b51a077, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -12918,6 +12882,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1935712680856038920, guid: a9369d56189c5c647bca56d8497d8817, type: 3}
+      propertyPath: playerData
+      value: 
+      objectReference: {fileID: 11400000, guid: ec92b7c21ed1d324c9e8f34ca4b71426, type: 2}
+    - target: {fileID: 1935712680856038920, guid: a9369d56189c5c647bca56d8497d8817, type: 3}
+      propertyPath: dialogueData
+      value: 
+      objectReference: {fileID: 11400000, guid: d827616c42b7c9d45ad6927ec88d3e71, type: 2}
     - target: {fileID: 2993646203777065083, guid: a9369d56189c5c647bca56d8497d8817, type: 3}
       propertyPath: m_Name
       value: PFB_NPC_A
@@ -12973,9 +12945,9 @@ SceneRoots:
   m_Roots:
   - {fileID: 1634932731}
   - {fileID: 922425687}
-  - {fileID: 1953484127}
   - {fileID: 1449889858}
   - {fileID: 1640930241}
+  - {fileID: 1953484127}
   - {fileID: 1005044841}
   - {fileID: 587501922}
   - {fileID: 2927838654253126144}

@@ -1,3 +1,4 @@
+// DialogueTrigger.cs
 using UnityEngine;
 
 public class DialogueTrigger : MonoBehaviour
@@ -12,7 +13,7 @@ public class DialogueTrigger : MonoBehaviour
     {
         if (other.CompareTag("Player") && !hasTriggered)
         {
-            Debug.Log($"Player ha entrado en el trigger de {dialogueData.npcName}");
+            Debug.Log($"El jugador ha entrado en el trigger de {dialogueData.npcName}");
             if (DialogueManager.Instance != null)
             {
                 if (dialogueData != null && playerData != null)

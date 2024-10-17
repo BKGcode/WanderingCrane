@@ -14,7 +14,15 @@ public class DialogueData : ScriptableObject
 public class DialogueLine
 {
     public Speaker speaker;
-    public string textKey;
+    public List<LocalizedText> localizedTexts = new List<LocalizedText>();
+}
+
+[System.Serializable]
+public class LocalizedText
+{
+    public string languageCode;
+    [TextArea]
+    public string text;
 }
 
 public enum Speaker

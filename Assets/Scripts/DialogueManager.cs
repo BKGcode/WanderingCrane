@@ -97,7 +97,7 @@ public class DialogueManager : MonoBehaviour
         DialogueLine line = currentNPCDialogue.dialogueLines[currentLineIndex];
         Sprite avatar = line.speaker == Speaker.Player ? playerData.avatar : currentNPCDialogue.avatar;
         string speakerName = line.speaker == Speaker.Player ? playerData.playerName : currentNPCDialogue.npcName;
-        string localizedText = languageManager.GetLocalizedText(line.textKey);
+        string localizedText = languageManager.GetLocalizedText(currentNPCDialogue.csvFileName, line.textKey);
         Debug.Log($"Mostrando línea {currentLineIndex + 1}: {speakerName} dice: {localizedText}");
         dialogueUI.UpdateDialogue(avatar, speakerName, localizedText);
     }

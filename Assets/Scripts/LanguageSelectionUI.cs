@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 public class LanguageSelectionUI : MonoBehaviour
 {
@@ -10,6 +11,16 @@ public class LanguageSelectionUI : MonoBehaviour
     [SerializeField] private GameObject languageButtonPrefab;
     [SerializeField] private Transform buttonsContainer;
     [SerializeField] private GameObject loadingIndicator;
+
+    private Dictionary<string, string> languageCodeToName = new Dictionary<string, string>
+    {
+        {"en", "English"},
+        {"es", "Español"},
+        {"fr", "Français"},
+        {"de", "Deutsch"},
+        {"it", "Italiano"}
+        // Añade más idiomas según sea necesario
+    };
 
     private void Start()
     {
@@ -30,7 +41,9 @@ public class LanguageSelectionUI : MonoBehaviour
             return;
         }
 
-        foreach (var language in languageManager.GetSupportedLanguages())
+        List<string> supportedLanguages = languageManager.GetSupportedLanguages();
+
+        foreach (var languageCode in supportedLanguages)
         {
             GameObject buttonObj = Instantiate(languageButtonPrefab, buttonsContainer);
             Button button = buttonObj.GetComponent<Button>();
@@ -38,8 +51,9 @@ public class LanguageSelectionUI : MonoBehaviour
 
             if (button != null && buttonText != null)
             {
-                buttonText.text = language.LanguageName;
-                button.onClick.AddListener(() => ChangeLanguageAsync(language.LanguageCode));
+                string languageName = languageCodeToName.TryGetValue(languageCode, out string name) ? name : languageCode;
+                buttonText.text = languageName;
+                button.onClick.AddListener(() => ChangeLanguageAsync(languageCode));
             }
             else
             {
@@ -70,9 +84,22 @@ public class LanguageSelectionUI : MonoBehaviour
 
             if (button != null && buttonText != null)
             {
-                bool isCurrentLanguage = buttonText.text == languageManager.GetSupportedLanguages().Find(lang => lang.LanguageCode == currentLanguageCode)?.LanguageName;
+                string buttonLanguageCode = GetLanguageCodeFromName(buttonText.text);
+                bool isCurrentLanguage = buttonLanguageCode == currentLanguageCode;
                 button.interactable = !isCurrentLanguage;
             }
         }
+    }
+
+    private string GetLanguageCodeFromName(string languageName)
+    {
+        foreach (var pair in languageCodeToName)
+        {
+            if (pair.Value == languageName)
+            {
+                return pair.Key;
+            }
+        }
+        return languageName; // Fallback to using the name as the code
     }
 }

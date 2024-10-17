@@ -6,6 +6,7 @@ public class NPCDialogueData : ScriptableObject
 {
     public string npcName;
     public Sprite avatar;
+    public string csvFileName; // Nombre del archivo CSV para este NPC, sin la extensión .csv
     public List<DialogueLine> dialogueLines = new List<DialogueLine>();
 }
 
@@ -13,7 +14,7 @@ public class NPCDialogueData : ScriptableObject
 public class DialogueLine
 {
     public Speaker speaker;
-    public string textKey; // Clave para la localización en lugar de texto directo
+    public string textKey; // Clave para la localización en el archivo CSV
 }
 
 public enum Speaker
